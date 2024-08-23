@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "ai-scientist"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+numpy = "1.26.4"
+anthropic = "^0.34.1"
+aider-chat = "^0.51.1"
+backoff = "^2.2.1"
+openai = "^1.42.0"
+matplotlib = "^3.9.2"
+pypdf = "^4.3.1"
+pymupdf4llm = "^0.0.11"
+torch = "^2.4.0"
+transformers = "^4.44.2"
+datasets = "^2.21.0"
+tiktoken = "^0.7.0"
+wandb = "^0.17.7"
+tqdm = "^4.66.5"
+einops = "^0.8.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
