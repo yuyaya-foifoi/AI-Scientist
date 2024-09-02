@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
     with open(osp.join(base_dir, "ideas.json"), "w") as f:
         json.dump(ideas, f, indent=4)
-
+    """
     novel_ideas = [idea for idea in ideas if idea["novel"]]
     # novel_ideas = list(reversed(novel_ideas))
 
@@ -438,5 +438,5 @@ if __name__ == "__main__":
                 print(f"Completed idea: {idea['Name']}, Success: {success}")
             except Exception as e:
                 print(f"Failed to evaluate idea {idea['Name']}: {str(e)}")
-
+    """
     print("All ideas evaluated.")

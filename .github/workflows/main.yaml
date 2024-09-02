@@ -1,0 +1,146 @@
+name: Build, Push to ECR, Deploy, and Configure Logging
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      deploy_environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'production'
+      custom_tag:
+        description: 'Custom Image Tag (optional)'
+        required: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: random-number-generator
+        IMAGE_TAG: ${{ github.event.inputs.custom_tag || github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Start EC2 instance
+      env:
+        EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+      run: |
+        aws ec2 start-instances --instance-ids $EC2_INSTANCE_ID
+        aws ec2 wait instance-running --instance-ids $EC2_INSTANCE_ID
+
+    - name: Install Docker and Configure CloudWatch Agent
+      env:
+        EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      run: |
+        echo "$EC2_SSH_KEY" > ec2_ssh_key.pem
+        chmod 600 ec2_ssh_key.pem
+        ssh -i ec2_ssh_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_ELASTIC_IP << EOF
+          set -ex
+          # Install Docker if not present
+          if ! command -v docker &> /dev/null; then
+            sudo yum update -y
+            sudo yum install docker -y
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -a -G docker $USER
+          fi
+
+          # Install CloudWatch Agent
+          sudo yum install -y amazon-cloudwatch-agent
+
+          # Configure CloudWatch Agent
+          sudo tee /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << EOC
+          {
+            "agent": {
+              "run_as_user": "root"
+            },
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/messages",
+                      "log_group_name": "/ec2/system-logs",
+                      "log_stream_name": "{instance_id}",
+                      "timestamp_format": "%b %d %H:%M:%S"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          EOC
+
+          # Start CloudWatch Agent
+          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+          # Verify CloudWatch Agent status
+          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status
+        EOF
+
+    - name: Deploy to EC2 instance
+      env:
+        EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: random-number-generator
+        IMAGE_TAG: ${{ github.sha }}
+        DEPLOY_ENV: ${{ github.event.inputs.deploy_environment || 'production' }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        S2_API_KEY: ${{ secrets.S2_API_KEY }}
+      run: |
+        ssh -i ec2_ssh_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_ELASTIC_IP << EOF
+          set -ex
+          echo "Deploying to $DEPLOY_ENV environment"
+          sudo docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          sudo docker stop app || true
+          sudo docker rm app || true
+          sudo docker run -d --name app \
+            -e OPENAI_API_KEY=$OPENAI_API_KEY \
+            -e S2_API_KEY=$S2_API_KEY \
+            --log-driver=awslogs \
+            --log-opt awslogs-region=us-east-1 \
+            --log-opt awslogs-group=/ec2/docker-logs \
+            --log-opt awslogs-stream=app-container \
+            --log-opt awslogs-create-group=true \
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "Entering container and setting up..."
+          sudo docker exec -it app bash -c "make run_and_enter_container && make setup_grokking && make run"
+        EOF
+
+    - name: Move templates to S3
+      env:
+        S3_BUCKET: ai-scientist
+      run: |
+        TIMESTAMP=$(date +'%Y/%m/%d/%H%M')
+        aws s3 cp ./templates s3://$S3_BUCKET/$TIMESTAMP/templates --recursive
+
+    - name: Stop EC2 instance
+      if: always()
+      env:
+        EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+      run: |
+        aws ec2 stop-instances --instance-ids $EC2_INSTANCE_ID
+        aws ec2 wait instance-stopped --instance-ids $EC2_INSTANCE_ID
