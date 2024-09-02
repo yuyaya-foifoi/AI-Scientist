@@ -108,7 +108,8 @@ jobs:
       run: |
         ssh -i ec2_ssh_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_ELASTIC_IP << EOF
           set -ex
-          sudo $(aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY)
+          # Amazon ECRにログイン
+          aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY
         EOF
 
     - name: Deploy to EC2 instance
