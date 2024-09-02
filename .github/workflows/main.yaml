@@ -82,7 +82,7 @@ jobs:
                     {
                       "file_path": "/var/log/messages",
                       "log_group_name": "/ec2/system-logs",
-                      "log_stream_name": "{instance_id}",
+                      "log_stream_name": "${{ secrets.EC2_INSTANCE_ID }}-system-logs",
                       "timestamp_format": "%b %d %H:%M:%S"
                     }
                   ]
@@ -97,6 +97,18 @@ jobs:
 
           # Verify CloudWatch Agent status
           sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status
+        EOF
+
+    - name: Login to Amazon ECR on EC2
+      env:
+        EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        ssh -i ec2_ssh_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_ELASTIC_IP << EOF
+          set -ex
+          sudo $(aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY)
         EOF
 
     - name: Deploy to EC2 instance
@@ -123,7 +135,7 @@ jobs:
             --log-driver=awslogs \
             --log-opt awslogs-region=us-east-1 \
             --log-opt awslogs-group=/ec2/docker-logs \
-            --log-opt awslogs-stream=app-container \
+            --log-opt awslogs-stream=${{ secrets.EC2_INSTANCE_ID }}-app-container \
             --log-opt awslogs-create-group=true \
             $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "Entering container and setting up..."
