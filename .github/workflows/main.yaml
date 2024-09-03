@@ -47,6 +47,12 @@ jobs:
         aws ec2 start-instances --instance-ids $EC2_INSTANCE_ID
         aws ec2 wait instance-running --instance-ids $EC2_INSTANCE_ID
 
+    - name: Wait for EC2 instance to be fully ready
+      run: |
+        echo "Waiting for EC2 instance to be fully ready..."
+        sleep 60  # ここで待機時間を60秒に設定。必要に応じて時間を調整可能。
+
+
     - name: Install Docker and Configure CloudWatch Agent
       env:
         EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
