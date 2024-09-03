@@ -31,6 +31,12 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
+    - name: Clean up Docker resources
+      run: |
+        docker system df
+        docker system prune -a --volumes --force
+        docker system df
+
     - name: Build, tag, and push image to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -116,12 +122,6 @@ jobs:
           # Amazon ECRにログイン
           aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY
         EOF
-
-    - name: Clean up Docker resources
-      run: |
-        docker system df
-        docker system prune -a --volumes --force
-        docker system df
 
     - name: Deploy to EC2 instance
       env:
