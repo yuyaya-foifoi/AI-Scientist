@@ -110,6 +110,20 @@ jobs:
           sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status
         EOF
 
+    - name: Clean up Docker resources on EC2
+      env:
+        EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      run: |
+        ssh -i ec2_ssh_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_ELASTIC_IP << EOF
+          set -ex
+          echo "Cleaning up Docker resources on EC2..."
+          sudo docker system df
+          sudo docker system prune -a --volumes --force
+          sudo docker system df
+        EOF
+
     - name: Login to Amazon ECR on EC2
       env:
         EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
