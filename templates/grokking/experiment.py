@@ -324,7 +324,7 @@ def run(out_dir, dataset, seed_offset):
     )
     num_train_batches = 10
     num_eval_batches = 8
-    num_total_updates = 7500
+    num_total_updates = 50
     warmup_steps = 50
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer, lr_lambda=lambda s: min(s / warmup_steps, 1)

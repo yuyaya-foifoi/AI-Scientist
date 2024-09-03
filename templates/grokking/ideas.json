@@ -1,0 +1,26 @@
+[
+    {
+        "Name": "batch_size_grokking",
+        "Title": "Batch Size Grokking: Assessing the impact of the training batchsize on the grokking phenomenon",
+        "Experiment": "Modify the experiments to dynamically adjust the batch size during training, starting with a small batch size and gradually increasing it. This could potentially lead to faster generalization on the validation set.",
+        "Interestingness": 6,
+        "Feasibility": 4,
+        "Novelty": 4
+    },
+    {
+        "Name": "operation_complexity_grokking",
+        "Title": "Operation Complexity Grokking: Assessing the impact of mathematical operation complexity on the grokking phenomenon",
+        "Experiment": "Add new dataset classes for modular exponentiation (e.g., ModExpDataset) and varying orders of permutation groups. Modular exponentiation is chosen due to its higher computational complexity compared to addition or subtraction, while varying permutation orders adds another layer of combinatorial complexity. Modify the existing experimentation loop to include these new datasets. Compare the generalization performance using metrics such as speed of achieving 99% accuracy, final accuracy, and training loss across these different datasets to analyze how operation complexity affects grokking.",
+        "Interestingness": 8,
+        "Feasibility": 7,
+        "Novelty": 7
+    },
+    {
+        "Name": "architecture_grokking",
+        "Title": "Architecture Grokking: Assessing the Impact of Model Architecture on the Grokking Phenomenon",
+        "Experiment": "Introduce variations in the number of layers and the dimensionality of the Transformer model. Modify the Transformer class to accept these parameters. Train these models on the existing datasets (addition, subtraction, division, permutation) and observe the grokking behavior. Measure metrics such as speed of achieving 99% accuracy, final accuracy, and training loss. Analyze the results to understand how architectural choices affect grokking and generalization.",
+        "Interestingness": 9,
+        "Feasibility": 7,
+        "Novelty": 8
+    }
+]

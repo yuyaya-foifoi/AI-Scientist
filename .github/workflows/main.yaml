@@ -155,6 +155,8 @@ jobs:
           sudo docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           sudo docker stop app || true
           sudo docker rm app || true
+          
+          # コンテナを起動し、バックグラウンドで実行し続ける
           sudo docker run -d --name app \
             -e OPENAI_API_KEY=$OPENAI_API_KEY \
             -e S2_API_KEY=$S2_API_KEY \
@@ -163,9 +165,14 @@ jobs:
             --log-opt awslogs-group=/ec2/docker-logs \
             --log-opt awslogs-stream=${{ secrets.EC2_INSTANCE_ID }}-app-container \
             --log-opt awslogs-create-group=true \
-            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "Entering container and setting up..."
-          sudo docker exec app make run_and_enter_container
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            tail -f /dev/null
+
+          # コンテナが起動していることを確認
+          sudo docker ps
+
+          # コンテナ内でコマンドを順次実行
+          echo "Running setup and starting the application..."
           sudo docker exec app make setup_grokking
           sudo docker exec app make run
         EOF
