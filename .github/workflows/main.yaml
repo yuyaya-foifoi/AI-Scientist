@@ -47,6 +47,11 @@ jobs:
         aws ec2 start-instances --instance-ids $EC2_INSTANCE_ID
         aws ec2 wait instance-running --instance-ids $EC2_INSTANCE_ID
 
+    - name: Wait for EC2 instance to be ready
+      run: |
+        echo "Waiting for 60 seconds to allow EC2 instance to fully initialize..."
+        sleep 60
+
     - name: Install Docker and Configure CloudWatch Agent
       env:
         EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
