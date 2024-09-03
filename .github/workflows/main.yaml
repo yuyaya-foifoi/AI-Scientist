@@ -165,7 +165,9 @@ jobs:
             --log-opt awslogs-create-group=true \
             $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "Entering container and setting up..."
-          sudo docker exec -it app bash -c "make run_and_enter_container && make setup_grokking && make run"
+          sudo docker exec app make run_and_enter_container
+          sudo docker exec app make setup_grokking
+          sudo docker exec app make run
         EOF
 
     - name: Move templates to S3
