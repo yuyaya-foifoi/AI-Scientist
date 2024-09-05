@@ -135,7 +135,7 @@ def worker(
         print(f"Completed idea: {idea['Name']}, Success: {success}")
     print(f"Worker {gpu_id} finished.")
 
-
+"""
 def do_idea(
     base_dir,
     results_dir,
@@ -295,7 +295,83 @@ def do_idea(
             sys.stdout = original_stdout
             sys.stderr = original_stderr
             log.close()
+"""
+def do_idea(
+    base_dir,
+    results_dir,
+    idea,
+    model,
+    client,
+    client_model,
+    writeup,
+    improvement,
+    log_file=False,
+):
+    ## CREATE PROJECT FOLDER
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    idea_name = f"{timestamp}_{idea['Name']}"
+    folder_name = osp.join(results_dir, idea_name)
+    destination_dir = folder_name
+    shutil.copytree(base_dir, destination_dir, dirs_exist_ok=True)
 
+    ## SETUP FILES
+    exp_file = osp.join(folder_name, "experiment.py")
+    vis_file = osp.join(folder_name, "plot.py")
+    notes = osp.join(folder_name, "notes.txt")
+    
+    ## SETUP LOGGING
+    if log_file:
+        log_path = osp.join(folder_name, "log.txt")
+        sys.stdout = sys.stderr = open(log_path, "a")
+
+    try:
+        print(f"Starting idea: {idea_name}")
+
+        ## PERFORM EXPERIMENTS
+        fnames = [exp_file, vis_file, notes]
+        io = InputOutput(yes=True, chat_history_file=f"{folder_name}/{idea_name}_aider.txt")
+        main_model = Model(model)
+        coder = Coder.create(main_model=main_model, fnames=fnames, io=io, stream=False, use_git=False, edit_format="diff")
+
+        if not perform_experiments(idea, folder_name, coder):
+            print(f"Experiments failed for idea {idea_name}")
+            return False
+
+        ## PERFORM WRITEUP
+        if writeup == "latex":
+            writeup_file = osp.join(folder_name, "latex", "template.tex")
+            fnames = [exp_file, writeup_file, notes]
+            coder = Coder.create(main_model=main_model, fnames=fnames, io=io, stream=False, use_git=False, edit_format="diff")
+            
+            if not perform_writeup(idea, folder_name, coder, client, client_model):
+                print("Failed to perform writeup")
+                return False
+
+            ## REVIEW PAPER
+            paper_text = load_paper(f"{folder_name}/{idea['Name']}.pdf")
+            review = perform_review(paper_text, model="gpt-4o-2024-05-13", client=openai.OpenAI())
+            with open(osp.join(folder_name, "review.txt"), "w") as f:
+                json.dump(review, f, indent=4)
+
+            ## IMPROVE WRITEUP
+            if improvement:
+                if not perform_improvement(review, coder):
+                    print("Failed to perform improvement")
+                    return False
+                
+                generate_latex(coder, folder_name, f"{folder_name}/{idea['Name']}_improved.pdf")
+
+        return True
+
+    except Exception as e:
+        print(f"Failed to evaluate idea {idea_name}: {str(e)}")
+        return False
+
+    finally:
+        print("FINISHED IDEA")
+        if log_file:
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
 
 if __name__ == "__main__":
     args = parse_arguments()
