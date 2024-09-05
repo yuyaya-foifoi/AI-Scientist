@@ -190,8 +190,9 @@ jobs:
       env:
         S3_BUCKET: ai-scientist
       run: |
-        TIMESTAMP=$(date +'%Y/%m/%d/%H%M')
-        aws s3 cp ./templates s3://$S3_BUCKET/$TIMESTAMP/templates --recursive
+        TIMESTAMP=$(date +'%Y_%m_%d_%H%M')
+        aws s3 cp /app/templates s3://$S3_BUCKET/$TIMESTAMP/templates --recursive
+
 
     - name: Stop EC2 instance
       if: always()
