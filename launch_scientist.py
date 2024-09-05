@@ -373,9 +373,6 @@ if __name__ == "__main__":
         max_num_generations=args.num_ideas,
         num_reflections=NUM_REFLECTIONS,
     )
-
-    with open(osp.join(base_dir, "ideas.json"), "w") as f:
-        json.dump(ideas, f, indent=4)
     """
     ideas = check_idea_novelty(
         ideas,
@@ -383,14 +380,19 @@ if __name__ == "__main__":
         client=client,
         model=client_model,
     )
+    """
+
+    with open(osp.join(base_dir, "ideas.json"), "w") as f:
+        json.dump(ideas, f, indent=4)
     
-    novel_ideas = [idea for idea in ideas if idea["novel"]]
+    #novel_ideas = [idea for idea in ideas if idea["novel"]]
     # novel_ideas = list(reversed(novel_ideas))
 
     if args.parallel > 0:
         print(f"Running {args.parallel} parallel processes")
         queue = multiprocessing.Queue()
-        for idea in novel_ideas:
+        #for idea in novel_ideas:
+        for idea in ideas:
             queue.put(idea)
 
         processes = []
@@ -423,7 +425,8 @@ if __name__ == "__main__":
 
         print("All parallel processes completed.")
     else:
-        for idea in novel_ideas:
+         #for idea in novel_ideas:
+        for idea in ideas:
             print(f"Processing idea: {idea['Name']}")
             try:
                 success = do_idea(
@@ -439,5 +442,4 @@ if __name__ == "__main__":
                 print(f"Completed idea: {idea['Name']}, Success: {success}")
             except Exception as e:
                 print(f"Failed to evaluate idea {idea['Name']}: {str(e)}")
-    """
     print("All ideas evaluated.")
