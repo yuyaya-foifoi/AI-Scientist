@@ -175,7 +175,15 @@ jobs:
             --log-opt awslogs-stream="${EC2_INSTANCE_ID}-app-container" \
             --log-opt awslogs-create-group=true \
             "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            sh -c "make setup_grokking && make run"
+            tail -f /dev/null
+
+          # Verify the container is running
+          sudo docker ps
+
+          # Execute commands in the container and redirect output to system logs
+          echo "Running setup and starting the application..."
+          sudo docker exec app make setup_grokking 2>&1 | sudo tee -a /var/log/messages
+          sudo docker exec app make run 2>&1 | sudo tee -a /var/log/messages
         EOF
 
     - name: Move templates to S3
@@ -194,7 +202,7 @@ jobs:
           aws s3 cp /tmp/templates s3://$S3_BUCKET/$TIMESTAMP/templates --recursive
           
           # クリーンアップ
-          rm -rf /tmp/templates
+          #sudo rm -rf /tmp/templates
         EOF
 
     - name: Stop EC2 instance
