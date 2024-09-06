@@ -187,7 +187,7 @@ jobs:
           sudo docker exec app sh -c 'make run 2>&1 | tee /proc/1/fd/1'
         EOF
 
-    - name: Move templates to S3
+    - name: Move results to S3
       env:
         S3_BUCKET: ai-scientist
         IMAGE_TAG: ${{ github.event.inputs.custom_tag || github.sha }}
@@ -195,11 +195,9 @@ jobs:
         ssh ec2-instance << EOF
           set -ex
           
-          # コンテナからホストにtemplatesをコピー
-          sudo docker cp app:/app/templates /tmp/templates
+          sudo docker cp app:/app/results /tmp/results
           
-          # S3にアップロード
-          aws s3 cp /tmp/templates s3://$S3_BUCKET/$(date +'%Y_%m_%d_%H%M')/templates --recursive
+          aws s3 cp /tmp/results s3://$S3_BUCKET/$(date +'%Y_%m_%d_%H%M')/results --recursive
           
           # クリーンアップ
           #sudo rm -rf /tmp/templates
