@@ -525,7 +525,7 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"Failed to evaluate idea {idea['Name']}: {str(e)}")
         """
-        idea = ideas[0]
+        idea = ideas[-1]
         print(f"Processing idea: {idea['Name']}")
         try:
             success = do_idea(
