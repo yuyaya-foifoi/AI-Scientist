@@ -153,6 +153,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: random-number-generator
+        EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
         IMAGE_TAG: ${{ github.sha }}
         DEPLOY_ENV: ${{ github.event.inputs.deploy_environment || 'production' }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -193,13 +194,12 @@ jobs:
       run: |
         ssh ec2-instance << EOF
           set -ex
-          TIMESTAMP=$(date +'%Y_%m_%d_%H%M')
           
           # コンテナからホストにtemplatesをコピー
           sudo docker cp app:/app/templates /tmp/templates
           
           # S3にアップロード
-          aws s3 cp /tmp/templates s3://$S3_BUCKET/$TIMESTAMP/templates --recursive
+          aws s3 cp /tmp/templates s3://$S3_BUCKET/$(date +'%Y_%m_%d_%H%M')/templates --recursive
           
           # クリーンアップ
           #sudo rm -rf /tmp/templates
