@@ -314,6 +314,11 @@ def do_idea(
     destination_dir = folder_name
     shutil.copytree(base_dir, destination_dir, dirs_exist_ok=True)
 
+    ## GET BASELINE RESULTS
+    with open(osp.join(base_dir, "run_0", "final_info.json"), "r") as f:
+        baseline_results = json.load(f)
+    baseline_results = {k: v["means"] for k, v in baseline_results.items()}
+
     ## SETUP FILES
     exp_file = osp.join(folder_name, "experiment.py")
     vis_file = osp.join(folder_name, "plot.py")
@@ -333,7 +338,7 @@ def do_idea(
         main_model = Model(model)
         coder = Coder.create(main_model=main_model, fnames=fnames, io=io, stream=False, use_git=False, edit_format="diff")
 
-        if not perform_experiments(idea, folder_name, coder):
+        if not perform_experiments(idea, folder_name, coder, baseline_results):
             print(f"Experiments failed for idea {idea_name}")
             return False
 
