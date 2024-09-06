@@ -183,8 +183,8 @@ jobs:
 
           # Execute commands in the container and redirect output to system logs
           echo "Running setup and starting the application..."
-          sudo docker exec app make setup_grokking 2>&1 | sudo tee >(sudo docker logs -i app)
-          sudo docker exec app make run 2>&1 | sudo tee >(sudo docker logs -i app)
+          sudo docker exec app sh -c 'make setup_grokking 2>&1 | tee /proc/1/fd/1'
+          sudo docker exec app sh -c 'make run 2>&1 | tee /proc/1/fd/1'
         EOF
 
     - name: Move templates to S3
