@@ -365,7 +365,6 @@ def do_idea(
                     return False
                 
                 generate_latex(coder, folder_name, f"{folder_name}/{idea['Name']}_improved.pdf")
-
         return True
 
     except Exception as e:
@@ -507,6 +506,7 @@ if __name__ == "__main__":
         print("All parallel processes completed.")
     else:
          #for idea in novel_ideas:
+        """
         for idea in ideas:
             print(f"Processing idea: {idea['Name']}")
             try:
@@ -523,4 +523,21 @@ if __name__ == "__main__":
                 print(f"Completed idea: {idea['Name']}, Success: {success}")
             except Exception as e:
                 print(f"Failed to evaluate idea {idea['Name']}: {str(e)}")
+        """
+        idea = ideas[0]
+        print(f"Processing idea: {idea['Name']}")
+        try:
+            success = do_idea(
+                base_dir,
+                results_dir,
+                idea,
+                args.model,
+                client,
+                client_model,
+                args.writeup,
+                args.improvement,
+            )
+            print(f"Completed idea: {idea['Name']}, Success: {success}")
+        except Exception as e:
+            print(f"Failed to evaluate idea {idea['Name']}: {str(e)}")
     print("All ideas evaluated.")
