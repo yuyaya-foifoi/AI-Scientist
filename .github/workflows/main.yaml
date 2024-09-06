@@ -111,7 +111,7 @@ jobs:
                   "collect_list": [
                     {
                       "file_path": "/var/log/messages",
-                      "log_group_name": "/ec2/system-logs",
+                      "log_group_name": "/ai-scientist/experiment-logs",
                       "log_stream_name": "${{ secrets.EC2_INSTANCE_ID }}-system-logs",
                       "timestamp_format": "%b %d %H:%M:%S"
                     }
@@ -167,31 +167,35 @@ jobs:
           
           # Run the container in the background
           sudo docker run -d --name app \
-            -e OPENAI_API_KEY=$OPENAI_API_KEY \
-            -e S2_API_KEY=$S2_API_KEY \
+            -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+            -e S2_API_KEY="$S2_API_KEY" \
             --log-driver=awslogs \
             --log-opt awslogs-region=us-east-1 \
             --log-opt awslogs-group=/ec2/docker-logs \
-            --log-opt awslogs-stream=${{ secrets.EC2_INSTANCE_ID }}-app-container \
+            --log-opt awslogs-stream="${EC2_INSTANCE_ID}-app-container" \
             --log-opt awslogs-create-group=true \
-            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            tail -f /dev/null
-
-          # Verify the container is running
-          sudo docker ps
-
-          # Execute commands in the container
-          echo "Running setup and starting the application..."
-          sudo docker exec app make setup_grokking
-          sudo docker exec app make run
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            sh -c "make setup_grokking && make run"
         EOF
 
     - name: Move templates to S3
       env:
         S3_BUCKET: ai-scientist
+        IMAGE_TAG: ${{ github.event.inputs.custom_tag || github.sha }}
       run: |
-        TIMESTAMP=$(date +'%Y/%m/%d/%H%M')
-        aws s3 cp ./templates s3://$S3_BUCKET/$TIMESTAMP/templates --recursive
+        ssh ec2-instance << EOF
+          set -ex
+          TIMESTAMP=$(date +'%Y_%m_%d_%H%M')
+          
+          # コンテナからホストにtemplatesをコピー
+          sudo docker cp app:/app/templates /tmp/templates
+          
+          # S3にアップロード
+          aws s3 cp /tmp/templates s3://$S3_BUCKET/$TIMESTAMP/templates --recursive
+          
+          # クリーンアップ
+          rm -rf /tmp/templates
+        EOF
 
     - name: Stop EC2 instance
       if: always()
