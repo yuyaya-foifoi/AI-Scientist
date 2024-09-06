@@ -445,68 +445,6 @@ Be sure to first name the file and use *SEARCH/REPLACE* blocks to perform these 
             .replace(r"}}", "}")
         )
 
-    # SKETCH THE RELATED WORK
-    section_prompt = f"""Please fill in the Related Work of the writeup. Some tips are provided below:
-
-{per_section_tips["Related Work"]}
-
-For this section, very briefly sketch out the structure of the section, and clearly indicate what papers you intend to include.
-Do this all in LaTeX comments using %.
-The related work should be concise, only plan to discuss the most relevant work.
-Do not modify `references.bib` to add any new citations, this will be filled in at a later stage.
-
-Be sure to first name the file and use *SEARCH/REPLACE* blocks to perform these edits.
-"""
-    coder_out = coder.run(section_prompt)
-
-    # Fill paper with cites.
-    for _ in range(num_cite_rounds):
-        with open(osp.join(folder_name, "latex", "template.tex"), "r") as f:
-            draft = f.read()
-        prompt, done = get_citation_aider_prompt(
-            cite_client, cite_model, draft, _, num_cite_rounds
-        )
-        if done:
-            break
-        if prompt is not None:
-            # extract bibtex string
-            bibtex_string = prompt.split('"""')[1]
-            # insert this into draft before the "\end{filecontents}" line
-            search_str = r"\end{filecontents}"
-            draft = draft.replace(search_str, f"{bibtex_string}{search_str}")
-            with open(osp.join(folder_name, "latex", "template.tex"), "w") as f:
-                f.write(draft)
-            coder_out = coder.run(prompt)
-
-    coder_out = coder.run(
-        refinement_prompt.format(section="Related Work")
-        .replace(r"{{", "{")
-        .replace(r"}}", "}")
-    )
-
-    ## SECOND REFINEMENT LOOP
-    coder.run(
-        """Great job! Now that there is a complete draft of the entire paper, let's refine each section again.
-First, re-think the Title if necessary. Keep this concise and descriptive of the paper's concept, but try by creative with it."""
-    )
-    for section in [
-        "Abstract",
-        "Related Work",
-        "Introduction",
-        "Background",
-        "Method",
-        "Experimental Setup",
-        "Results",
-        "Conclusion",
-    ]:
-        coder_out = coder.run(
-            second_refinement_prompt.format(
-                section=section, tips=per_section_tips[section]
-            )
-            .replace(r"{{", "{")
-            .replace(r"}}", "}")
-        )
-
     generate_latex(coder, folder_name, f"{folder_name}/{idea['Name']}.pdf")
 
 

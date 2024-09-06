@@ -351,7 +351,7 @@ def do_idea(
             if not perform_writeup(idea, folder_name, coder, client, client_model):
                 print("Failed to perform writeup")
                 return False
-
+            """
             ## REVIEW PAPER
             paper_text = load_paper(f"{folder_name}/{idea['Name']}.pdf")
             review = perform_review(paper_text, model="gpt-4o-2024-05-13", client=openai.OpenAI())
@@ -365,6 +365,7 @@ def do_idea(
                     return False
                 
                 generate_latex(coder, folder_name, f"{folder_name}/{idea['Name']}_improved.pdf")
+            """
         return True
 
     except Exception as e:

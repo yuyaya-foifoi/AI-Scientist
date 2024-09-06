@@ -173,7 +173,7 @@ jobs:
             --log-driver=awslogs \
             --log-opt awslogs-region=us-east-1 \
             --log-opt awslogs-group=/ai-scientist/experiment-logs \
-            --log-opt awslogs-stream="${EC2_INSTANCE_ID}-app-container" \
+            --log-opt awslogs-stream="${EC2_INSTANCE_ID}-app-container-$(date +"%Y%m%d-%H%M%S")" \
             --log-opt awslogs-create-group=true \
             "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
             tail -f /dev/null
